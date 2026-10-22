@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kaplan City Campus @ Wilkie Edge · 像素微缩</title>
+<style>
+html,body{margin:0;height:100%;background:#f4f2ed;overflow:hidden;font-family:ui-monospace,Menlo,Consolas,monospace}
+canvas{display:block;width:100vw;height:100vh;image-rendering:pixelated;image-rendering:crisp-edges}
+#cap{position:fixed;left:18px;bottom:14px;color:#8d9296;font-size:12px;line-height:1.7;letter-spacing:.04em;pointer-events:none}
+#cap b{color:#474d52;font-weight:600}
+#cap i{font-style:normal;color:#b0b4b7}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="cap"><b>Kaplan City Campus @ Wilkie Edge</b> · 8 Wilkie Road, Singapore<br>Selegie Rd × Wilkie Rd · 等距像素微缩 · 程序化绘制<br><i>动作循环：预备 → 发力 → 收势 → 回位</i></div>
+<script>
+'use strict';
+/* ---------- 基础：像素画布、等距投影、无抗锯齿多边形 ---------- */
+const W=480,H=300,OX=200,OY=96;
+const off=document.createElement('canvas');off.width=W;off.height=H;
+const g=off.getContext('2d');
+const bgc=document.createElement('canvas');bgc.width=W;bgc.height=H;
+const bg=bgc.getContext('2d');
+const main=document.getElementById('c'),mg=main.getContext('2d');
+let ctx=g;
+const R=Math.round,clamp=(v,a,b)=>v<a?a:v>b?b:v;
+// 世界坐标 -> 屏幕像素：x 轴向右下 (2,1)，y 轴向左下 (-2,1)，z 向上
+function P(x,y,z){return [OX+(x-y)*2,OY+(x+y)-(z||0)];}
+const cache={};
+function sh(c,k){const key=c+'|'+k;if(cache[key])return cache[key];
+  const r=parseInt(c.slice(1,3),16),gg=parseInt(c.slice(3,5),16),b=parseInt(c.slice(5,7),16);
+  const f=v=>clamp(R(v*k),0,255);return cache[key]=`rgb(${f(r)},${f(gg)},${f(b)})`;}
+// 凸多边形逐列填充：每一列用 fillRect 画整像素，保证统一像素颗粒
+function poly(pts,col){let x0=1e9,x1=-1e9;for(const p of pts){if(p[0]<x0)x0=p[0];if(p[0]>x1)x1=p[0];}
+  x0=R(x0);x1=R(x1);ctx.fillStyle=col;
+  for(let x=x0;x<x1;x++){const cx=x+.5;let lo=1e9,hi=-1e9;
+    for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];
+      if((cx>=a[0]&&cx<b[0])||(cx>=b[0]&&cx<a[0])){const y=a[1]+(cx-a[0])/(b[0]-a[0])*(b[1]-a[1]);if(y<lo)lo=y;if(y>hi)hi=y;}}
+    if(lo<hi){const ya=R(lo),yb=R(hi);ctx.fillRect(x,ya,1,Math.max(1,yb-ya));}}}
+function flat(x,y,w,d,c){poly([P(x,y),P(x+w,y),P(x+w,y+d),P(x,y+d)],c);}
+// 长方体：左面(+y)受光较亮，右面(+x)背光较暗，顶面最亮
+function box(x,y,z,w,d,h,c,o){o=o||{};
+  const t=P(x,y,z+h),r=P(x+w,y,z+h),f=P(x+w,y+d,z+h),l=P(x,y+d,z+h),fb=P(x+w,y+d,z),rb=P(x+w,y,z),lb=P(x,y+d,z);
+  if(h>0){poly([l,f,fb,lb],sh(c,o.left||.82));poly([f,r,rb,fb],sh(c,o.right||.6));}
+  poly([t,r,f,l],sh(c,o.top||1));}
+// 地面投影：光源在左后上方，影子向 +x 方向拖出
+function shadow(x,y,w,d,h,a){const dx=h*.42,dy=h*.1;
+  poly([P(x,y),P(x+w,y),P(x+w+dx,y+dy),P(x+w+dx,y+d+dy),P(x+dx,y+d+dy),P(x,y+d)],'rgba(40,52,64,'+(a||.13)+')');}
+// 圆柱：按屏幕列扫描，cb(列x, u∈[-1,1], 底边y)
+function cylCols(cx,cy,z,r,cb){const s=P(cx,cy,z),A=r*2.83,B=r*1.41,x0=R(s[0]-A),x1=R(s[0]+A);
+  for(let x=x0;x<x1;x++){const u=(x+.5-s[0])/A,q=Math.sqrt(Math.max(0,1-u*u));cb(x,u,R(s[1]+B*q),q);}}
+function cylTop(cx,cy,z,r,c){const s=P(cx,cy,z),A=r*2.83,B=r*1.41,x0=R(s[0]-A),x1=R(s[0]+A);ctx.fillStyle=c;
+  for(let x=x0;x<x1;x++){const u=(x+.5-s[0])/A,q=Math.sqrt(Math.max(0,1-u*u));const ya=R(s[1]-B*q),yb=R(s[1]+B*q);ctx.fillRect(x,ya,1,Math.max(1,yb-ya));}}
+// 3x5 像素字体（只含用到的字母）
+const F={A:'010101111101101',B:'110101110101110',C:'011100100100011',D:'110101101101110',E:'111100110100111',G:'011100101101011',
+  I:'111010010010111',K:'101101110101101',L:'100100100100111',M:'101111111101101',N:'101111111101101',O:'010101101101010',
+  P:'110101110100100',R:'110101110101101',S:'011100010001110',T:'111010010010010',U:'101101101101111',W:'101101111111101',' ':'0'.repeat(15)};
+// 把文字贴到竖直墙面上：axis 'x' 贴在 +y 面（沿 +x 书写），'y' 贴在 +x 面（沿 -y 书写，保证从左到右可读）
+function text(str,x,y,z,axis,c){let cx=0;ctx.fillStyle=c;
+  for(const ch of str){const gl=F[ch]||F[' '];
+    for(let i=0;i<15;i++)if(gl[i]==='1'){const col=i%3,row=(i/3)|0,wx=cx+col*.5,wz=z+(4-row);
+      const p=axis==='x'?P(x+wx,y,wz):P(x,y-wx,wz);ctx.fillRect(R(p[0]),R(p[1]),1,1);}
+    cx+=2;}}
+
+/* ---------- 场景常量 ---------- */
+const S0X=-20,S1X=96,S0Y=-20,S1Y=70;          // 地台范围
+const BW=56,BD=30,BH=46;                       // 主楼（原点在后角）
+const DX=50,DY=24,DR=9,DH=52;                  // 转角玻璃圆鼓（LED 幕墙）
+const RA0=36,RA1=56,RB0=62,RB1=82;             // 路 A (Selegie Rd, 沿 x) / 路 B (Wilkie Rd, 沿 y)
+const C={bg:'#f4f2ed',slab:'#e4e1da',pave:'#d6d2c8',road:'#b6babd',grass:'#9cc26a',tile:'#b0b6ba',glass:'#55697a',
+  rail:'#3f9b4b',white:'#f6f6f2',trunk:'#7a5a3c',leaf:'#5e9c45'};
+
+/* ---------- 静态场景（只画一次到 bg 图层） ---------- */
+function drawStatic(){ctx=bg;ctx.clearRect(0,0,W,H);
+  // 地台
+  box(S0X,S0Y,-2,S1X-S0X,S1Y-S0Y,2,C.slab,{top:1,left:.88,right:.76});
+  // 人行道（楼前与楼侧铺装）
+  flat(S0X,30,RB0-S0X,6,C.pave);flat(BW,S0Y,6,56,C.pave);
+  flat(S0X,RA1,S1X-S0X,6,C.pave);flat(RB1,S0Y,6,S1Y-S0Y,C.pave);
+  // 道路
+  flat(S0X,RA0,S1X-S0X,RA1-RA0,C.road);flat(RB0,S0Y,RB1-RB0,S1Y-S0Y,C.road);
+  // 绿化带：楼前、楼侧、对面、路中央分隔带（在路口处断开）
+  flat(S0X,33,BW-S0X,3,C.grass);flat(59,S0Y,3,50,C.grass);
+  flat(S0X,RA1,RB0-S0X,3,C.grass);flat(RB1+4,RA1,S1X-RB1-4,3,C.grass);
+  flat(RB1,S0Y,3,RA0-S0Y,C.grass);flat(RB1,RA1+6,3,S1Y-RA1-6,C.grass);
+  flat(S0X,44.5,RB0-S0X,3,C.grass);flat(RB1,44.5,S1X-RB1,3,C.grass);
+  flat(70.5,S0Y,3,30-S0Y,C.grass);flat(70.5,RA1+8,3,S1Y-RA1-8,C.grass);
+  // 车道虚线
+  ctx.fillStyle=C.white;
+  for(let x=S0X+2;x<S1X;x+=6){if(x+3<RB0||x>RB1){flat(x,40.3,3,.4,C.white);flat(x,51.3,3,.4,C.white);}}
+  for(let y=S0Y+2;y<S1Y;y+=6){if(y+3<RA0||y>RA1){flat(66.3,y,.4,3,C.white);flat(77.3,y,.4,3,C.white);}}
+  // 斑马线（路 B 两处、路 A 一处）与停止线
+  for(let x=63;x<81;x+=2.4){flat(x,31,1.2,4,C.white);flat(x,58.5,1.2,4,C.white);}
+  for(let y=37;y<55;y+=2.4)flat(57,y,4,1.2,C.white);
+  flat(54,36.2,.8,8.2,C.white);flat(84.6,47.6,.8,8.2,C.white);
+  flat(62.2,63.4,8.2,.8,C.white);flat(73.6,28.2,8.2,.8,C.white);
+  // ---- 主楼 ----
+  shadow(0,0,BW,BD,BH*.55,.12);
+  // 裙楼：两层玻璃店面
+  box(0,0,0,BW,BD,10,C.glass,{left:.95,right:.7});
+  for(let x=2;x<BW;x+=4)poly([P(x,BD,0),P(x+.5,BD,0),P(x+.5,BD,9),P(x,BD,9)],sh(C.glass,1.35));
+  for(let y=2;y<BD;y+=4)poly([P(BW,y,0),P(BW,y+.5,0),P(BW,y+.5,9),P(BW,y,9)],sh(C.glass,1.05));
+  poly([P(0,BD,9),P(BW,BD,9),P(BW,BD,10),P(0,BD,10)],'#c7cbcd');poly([P(BW,0,9),P(BW,BD,9),P(BW,BD,10),P(BW,0,10)],'#a9adb0');
+  // 店面：红色中餐厅、Starbucks、KAPLAN 蓝底招牌
+  poly([P(12,BD,0),P(22,BD,0),P(22,BD,7),P(12,BD,7)],'#b8342c');poly([P(12,BD,2.5),P(22,BD,2.5),P(22,BD,4),P(12,BD,4)],'#e8c45a');
+  poly([P(30,BD,6.2),P(40,BD,6.2),P(40,BD,8.6),P(30,BD,8.6)],'#0e6b4a');poly([P(34.2,BD,6.6),P(35.8,BD,6.6),P(35.8,BD,8.2),P(34.2,BD,8.2)],'#e9f3ee');
+  poly([P(2,BD,6.2),P(11.6,BD,6.2),P(11.6,BD,9),P(2,BD,9)],'#1d3f93');text('KAPLAN',2.6,BD+.01,6.6,'x','#f2f5ff');
+  poly([P(BW,2,6.2),P(BW,14,6.2),P(BW,14,9),P(BW,2,9)],'#1d3f93');text('KAPLAN',BW+.01,13.3,6.6,'y','#f2f5ff');
+  // 标准层：灰色面砖 + 窗格
+  box(0,0,10,BW,BD,BH-10,C.tile,{left:.9,right:.66});
+  for(let f=0;f<6;f++){const z=10+f*6;
+    poly([P(0,BD,z),P(BW,BD,z),P(BW,BD,z+.6),P(0,BD,z+.6)],sh(C.tile,.78));
+    poly([P(BW,0,z),P(BW,BD,z),P(BW,BD,z+.6),P(BW,0,z+.6)],sh(C.tile,.56));
+    for(let x=2;x<BW-2;x+=4){poly([P(x,BD,z+1.5),P(x+2,BD,z+1.5),P(x+2,BD,z+4.5),P(x,BD,z+4.5)],'#4b5f6d');poly([P(x,BD,z+4),P(x+2,BD,z+4),P(x+2,BD,z+4.5),P(x,BD,z+4.5)],'#8ea4b1');}
+    for(let y=2;y<BD-2;y+=4){poly([P(BW,y,z+1.5),P(BW,y+2,z+1.5),P(BW,y+2,z+4.5),P(BW,y,z+4.5)],'#3b4c58');poly([P(BW,y,z+4),P(BW,y+2,z+4),P(BW,y+2,z+4.5),P(BW,y,z+4.5)],'#6f8491');}}
+  // 女儿墙、屋顶花园、弧形玻璃天棚
+  box(0,0,BH,BW,BD,1,'#cfd3d5');box(1,1,BH,BW-2,BD-2,.6,'#a9aeb1',{top:1});
+  flat(3,3,22,24,'#8db862');for(let i=0;i<6;i++)box(26,3+i*2.3,BH+.6,27,2.3,[1.4,2.6,3.4,3.4,2.6,1.4][i],'#cddbe1',{left:.92,right:.72});
+  for(let x=27;x<53;x+=4)poly([P(x,3,BH+4.4),P(x+.5,3,BH+4.4),P(x+.5,16.8,BH+4.4),P(x,16.8,BH+4.4)],'#9fb0b8');
+  // ---- 转角圆鼓（玻璃塔楼） ----
+  shadow(DX-DR,DY-DR,DR*2,DR*2,DH*.5,.1);
+  cylCols(DX,DY,0,DR,(x,u,yb)=>{let k=1-.42*(u+1)/2;if(u>-.5&&u<-.2)k+=.14;
+    ctx.fillStyle=sh('#8aa7b6',k);ctx.fillRect(x,yb-DH,1,DH);
+    ctx.fillStyle=sh('#4a6474',k);ctx.fillRect(x,yb-10,1,10);
+    for(let z=10;z<DH;z+=6){ctx.fillStyle=sh('#6a8797',k);ctx.fillRect(x,yb-z,1,1);}
+    if(((x*7)%23)<2){ctx.fillStyle=sh('#c6d6de',k);ctx.fillRect(x,yb-DH,1,DH-10);}
+    ctx.fillStyle=sh('#c8cdd0',k+.1);ctx.fillRect(x,yb-DH-1,1,2);});
+  cylTop(DX,DY,DH+1,DR,'#d9dddf');cylTop(DX,DY,DH+1,DR-1.2,'#bfc5c8');
+  // 入口门楣：WILKIE EDGE 招牌
+  box(40,33,8,22,3,4.5,'#eceeee',{left:.97,right:.8});text('WILKIE EDGE',40.6,36.01,9.7,'x','#3fa148');
+  text('EDGE',54.6,36.02,9.7,'x','#ef9a2a');
+  for(let x=42;x<62;x+=5)box(x,35.4,0,.8,.8,8.1,'#b9bec2',{left:.9,right:.7});
+}
+
+/* ---------- 动态/需排序的物件 ---------- */
+let items=[];const add=(k,fn,cl)=>items.push({k,fn,cl});
+const SLAB=[P(S0X,S0Y),P(S1X,S0Y),P(S1X,S1Y),P(S0X,S1Y)];
+function clipSlab(){ctx.beginPath();ctx.moveTo(SLAB[0][0],SLAB[0][1]);for(let i=1;i<4;i++)ctx.lineTo(SLAB[i][0],SLAB[i][1]);ctx.closePath();ctx.clip();}
+let T=0;
+// 树：树干 + 三层叠块树冠，顶部随风轻摆
+function tree(x,y,z,s,sw){s=s||1;const dx=Math.sin(T*1.2+x*.37+y*.5)*.35*(sw||1);
+  add(x+y+3*s,()=>{shadow(x-2*s,y-2*s,4*s,4*s,4*s,.1);box(x-.4,y-.4,z,.8,.8,4*s,C.trunk,{left:.85,right:.6});
+    box(x-3*s+dx*.5,y-3*s,z+3.6*s,6*s,6*s,2.6*s,C.leaf,{top:1.08,left:.86,right:.62});
+    box(x-2*s+dx,y-2*s,z+6.2*s,4*s,4*s,2*s,C.leaf,{top:1.2,left:.95,right:.7});
+    box(x-1*s+dx*1.4,y-1*s,z+8.2*s,2*s,2*s,1.2*s,C.leaf,{top:1.35,left:1.05,right:.8});});}
+function lamp(x,y,arm){add(x+y+.6,()=>{box(x,y,0,.6,.6,13,'#8f959a',{left:.9,right:.7});
+  if(arm>0)box(x,y,12.6,.5,4,.5,'#8f959a');else box(x-3.5,y,12.6,4,.5,.5,'#8f959a');
+  const p=P(arm>0?x:x-3.5,arm>0?y+4:y,12.6);ctx.fillStyle='#fff3c4';ctx.fillRect(R(p[0])-1,R(p[1]),3,1);});}
+// 绿色栏杆（分隔带与路缘）
+function rail(x,y,len,ax){const w=ax==='x'?len:.3,d=ax==='x'?.3:len;
+  add(x+w+y+d,()=>{box(x,y,1.1,w,d,.35,C.rail,{top:1.15,left:.9,right:.7});
+    for(let i=0;i<len;i+=2)box(ax==='x'?x+i:x,ax==='x'?y:y+i,0,.3,.3,1.1,C.rail,{left:.85,right:.6});});}
+// 连接天桥（跨路 A，中央分隔带上立柱）
+function bridge(){add(22+62,()=>{shadow(8,32,12,30,11,.08);box(11,45,0,2.4,1.6,11,'#b4b9bc',{left:.86,right:.62});
+  box(8,32,11,12,30,2.4,'#cbcfd1',{left:.9,right:.7});box(8,32,13.4,.7,30,1.6,'#dde0e2',{left:.88,right:.7});box(19.3,32,13.4,.7,30,1.6,'#dde0e2',{left:.88,right:.7});
+  for(let y=33;y<62;y+=3)box(8.7,y,13.4,10.6,.4,1.2,'#9fb4c0',{top:1.1,left:.95,right:.75});});}
+// 红绿灯
+function light(x,y,grp){add(x+y+1,()=>{box(x,y,0,.5,.5,7,'#5a5e62',{left:.9,right:.7});box(x-.2,y-.2,7,1,1,2.6,'#2d3033',{left:.9,right:.7});
+  const p=P(x+.8,y+.8,7.6),col=sig(grp)==='g'?'#3ad15a':sig(grp)==='a'?'#ffb020':'#ff3b3b';ctx.fillStyle=col;ctx.fillRect(R(p[0]),R(p[1])-1,1,1);});}
+
+/* ---------- 信号周期（18 s）：A 绿 → 黄 → B 绿 → 黄 ---------- */
+const CYC=18;let ph=0;
+function sig(grp){if(grp==='A')return ph<7.5?'g':ph<9?'a':'r';return ph>=9.5&&ph<16.5?'g':ph>=16.5?'a':'r';}
+const walkOK=grp=>grp==='B'?(ph<5.5):(ph>=9.5&&ph<14.5);   // 行人过路 B 需路 B 红灯
+
+/* ---------- 车辆：跟驰 + 停止线，带预备(刹车点头)/发力(起步后坐)/收势(匀速)/回位(循环) ---------- */
+const lanes=[
+  {ax:'x',dir:1,c:38.5,stop:54.5,grp:'A'},{ax:'x',dir:1,c:42.5,stop:54.5,grp:'A'},
+  {ax:'x',dir:-1,c:49.5,stop:-84.5,grp:'A'},{ax:'x',dir:-1,c:53.5,stop:-84.5,grp:'A'},
+  {ax:'y',dir:-1,c:64.5,stop:-63.5,grp:'B'},{ax:'y',dir:-1,c:68.5,stop:-63.5,grp:'B'},
+  {ax:'y',dir:1,c:75.5,stop:28.5,grp:'B'},{ax:'y',dir:1,c:79.5,stop:28.5,grp:'B'}];
+for(const l of lanes){const lo=l.ax==='x'?S0X:S0Y,hi=l.ax==='x'?S1X:S1Y;l.s0=l.dir>0?lo-14:-(hi+14);l.s1=l.dir>0?hi+14:-(lo-14);l.cars=[];l.next=0;}
+const PAL=['#f2f2ee','#d9dcdf','#2b2e33','#c2322b','#2f4f9a','#e8e4d8','#6b7378','#f2f2ee','#1e73b8'];
+function mkCar(l,s){const r=Math.random();const type=r<.1?'bus':r<.3?'van':'car';
+  return {s,L:type==='bus'?11:type==='van'?6.5:5.5,type,v:0,pv:0,pitch:0,vmax:9+Math.random()*4,col:type==='bus'?(Math.random()<.5?'#c8352f':'#59a84a'):PAL[(Math.random()*PAL.length)|0],commit:false};}
+for(const l of lanes){let s=l.s0+Math.random()*8;while(s<l.s1){const c=mkCar(l,s);c.v=c.vmax*.6;l.cars.push(c);s+=c.L+9+Math.random()*20;}l.cars.sort((a,b)=>b.s-a.s);}
+function stepCars(dt){for(const l of lanes){const red=sig(l.grp)!=='g';
+  for(let i=0;i<l.cars.length;i++){const c=l.cars[i],ahead=l.cars[i-1];let lim=1e9;
+    if(ahead)lim=ahead.s-ahead.L-1.8;
+    if(red&&c.s<l.stop){if(!c.commit&&c.s>l.stop-c.v*c.v/18-.6)c.commit=true;if(!c.commit)lim=Math.min(lim,l.stop);}else c.commit=false;
+    const want=Math.min(c.vmax,Math.sqrt(2*9*Math.max(0,lim-c.s)));
+    c.pv=c.v;c.v+=clamp(want-c.v,-9*dt,4.5*dt);c.s+=c.v*dt;
+    const a=(c.v-c.pv)/Math.max(dt,1e-3);c.pitch+=(clamp(a/7,-1,1)-c.pitch)*Math.min(1,dt*6);}
+  if(l.cars.length&&l.cars[0].s>l.s1)l.cars.shift();
+  const last=l.cars[l.cars.length-1];l.next-=dt;
+  if((!last||last.s-last.L>l.s0+8)&&l.next<=0){l.cars.push(mkCar(l,l.s0));l.next=1.8+Math.random()*4;}}}
+function drawCar(l,c){const L=c.L,wd=3;let x,y,w,d;
+  if(l.ax==='x'){w=L;d=wd;x=l.dir>0?c.s-L:-c.s;y=l.c-wd/2;}else{w=wd;d=L;y=l.dir>0?c.s-L:-c.s;x=l.c-wd/2;}
+  add(x+w+y+d,()=>{const sq=Math.abs(c.pitch)>.4?-1:0,bh=c.type==='car'?1.6:2.2,col=c.col;
+    shadow(x,y,w,d,2,.1);box(x+.4,y+.3,0,w-.8,d-.6,.8,'#2c2f33',{left:.9,right:.7});
+    box(x,y,.8+sq,w,d,bh,col,{top:1,left:.86,right:.62});
+    const sft=c.pitch*.5*l.dir;   // 刹车/起步时车厢因惯性前后错位 1px
+    if(c.type==='car'){if(l.ax==='x')box(x+L*.28-sft,y+.4,.8+bh+sq,L*.42,d-.8,1.2,'#5c7d91',{top:1.15,left:.9,right:.65});
+      else box(x+.4,y+L*.28-sft,.8+bh+sq,w-.8,L*.42,1.2,'#5c7d91',{top:1.15,left:.9,right:.65});}
+    else{if(l.ax==='x')box(x+.3,y+.3,.8+bh+sq,L-.6,d-.6,1.4,col,{top:1.05,left:.84,right:.6});else box(x+.3,y+.3,.8+bh+sq,w-.6,L-.6,1.4,col,{top:1.05,left:.84,right:.6});
+      const gc='#4c6a7c';if(l.ax==='x')for(let i=.8;i<L-1;i+=1.6)poly([P(x+i,y+d,.8+bh+.3+sq),P(x+i+1,y+d,.8+bh+.3+sq),P(x+i+1,y+d,.8+bh+1.2+sq),P(x+i,y+d,.8+bh+1.2+sq)],gc);
+      else for(let i=.8;i<L-1;i+=1.6)poly([P(x+w,y+i,.8+bh+.3+sq),P(x+w,y+i+1,.8+bh+.3+sq),P(x+w,y+i+1,.8+bh+1.2+sq),P(x+w,y+i,.8+bh+1.2+sq)],gc);}
+    // 车灯：可见端面是车头则为暖白，车尾则为红
+    const front=(l.ax==='x'&&l.dir>0)||(l.ax==='y'&&l.dir>0);ctx.fillStyle=front?'#fff1b0':'#ff4a3a';
+    const q1=l.ax==='x'?P(x+w,y+.5,1.6+sq):P(x+.5,y+d,1.6+sq),q2=l.ax==='x'?P(x+w,y+d-.5,1.6+sq):P(x+w-.5,y+d,1.6+sq);
+    ctx.fillRect(R(q1[0]),R(q1[1]),1,1);ctx.fillRect(R(q2[0]),R(q2[1]),1,1);},true);}
+
+/* ---------- 行人：路线 + 等灯 ---------- */
+const routes=[
+  [[-20,31.5],[61,31.5,'B'],[83,31.5],[96,31.5]],[[96,32.5],[83,32.5,'B'],[61,32.5],[-20,32.5]],
+  [[57.5,-20],[57.5,34.5,'A'],[57.5,57.5],[57.5,70]],[[60,70],[60,57.5,'A'],[60,35],[60,-20]],
+  [[-20,60.5],[61,60.5,'B'],[83,60.5],[96,60.5]],[[96,59.5],[83,59.5,'B'],[61,59.5],[-20,59.5]],
+  [[57,-20],[57,31],[-20,31]],[[-20,32],[57.5,32],[57.5,-20]],[[84,-20],[84,70]],[[85,70],[85,-20]]];
+const SHIRT=['#e8534a','#3a7bd5','#f2f0ea','#2d2f36','#f4c542','#59b36b','#9b59b6','#ff8c42','#1f3f93'];
+const peds=[];
+function mkPed(){const rt=routes[(Math.random()*routes.length)|0],i=1+((Math.random()*(rt.length-1))|0),a=rt[i-1],b=rt[i],f=Math.random(),o=(Math.random()-.5)*1.6;
+  return {rt,i,o,x:a[0]+(b[0]-a[0])*f,y:a[1]+(b[1]-a[1])*f,v:0,vmax:2.6+Math.random()*1.4,sh:SHIRT[(Math.random()*SHIRT.length)|0],pn:Math.random()<.5?'#2f3540':'#6b7a8c',sk:Math.random()<.6?'#e7b98f':'#8c5a3c',ph:Math.random()*7,wait:0};}
+for(let i=0;i<22;i++)peds.push(mkPed());
+function stepPeds(dt){for(const p of peds){const tg=p.rt[p.i];let dx=tg[0]-p.x,dy=tg[1]-p.y,dist=Math.hypot(dx,dy);
+  const blocked=tg[2]&&!walkOK(tg[2]);let want=p.vmax;
+  if(blocked)want=dist<.4?0:Math.min(p.vmax,dist*2.5);           // 收势：接近路缘减速停下
+  else if(p.i+1<p.rt.length&&p.rt[p.i+1][2]&&!walkOK(p.rt[p.i+1][2])&&dist<3)want=p.vmax*.7;
+  p.v+=clamp(want-p.v,-8*dt,3*dt);                                  // 发力：起步加速有过程
+  if(dist>1e-3){const m=Math.min(dist,p.v*dt);p.x+=dx/dist*m;p.y+=dy/dist*m;}
+  p.wait=(blocked&&dist<.5)?p.wait+dt:0;
+  if(dist<.3&&!blocked){p.i++;if(p.i>=p.rt.length){const n=mkPed();n.rt=p.rt;n.i=1;n.x=p.rt[0][0];n.y=p.rt[0][1];Object.assign(p,n);}}
+  if(p.v>.2)p.ph+=dt*9*(p.v/p.vmax);}}
+function drawPed(p){const ox=Math.abs(p.rt[p.i][0]-p.rt[p.i-1][0])>Math.abs(p.rt[p.i][1]-p.rt[p.i-1][1])?0:p.o,oy=ox?0:p.o;
+  add(p.x+ox+p.y+oy+.5,()=>{const s=P(p.x+ox,p.y+oy,0),x=R(s[0]),y=R(s[1]);
+    const idle=p.wait>0?Math.round(Math.sin(p.wait*2.2)*.6):0;   // 预备：等灯时重心左右微移
+    const st=p.v>.2?Math.sin(p.ph):0,bob=st>.5||st<-.5?1:0;
+    ctx.fillStyle='rgba(40,52,64,.16)';ctx.fillRect(x-1,y-1,3,1);
+    ctx.fillStyle=p.pn;ctx.fillRect(x+idle-1,y-2,1,st>0?2:1);ctx.fillRect(x+idle,y-2,1,st>0?1:2);
+    ctx.fillStyle=p.sh;ctx.fillRect(x+idle-1,y-5-bob,2,3);
+    ctx.fillStyle=p.sk;ctx.fillRect(x+idle-1,y-7-bob,2,2);
+    ctx.fillStyle='#2b2420';ctx.fillRect(x+idle-1,y-7-bob,2,1);});}
+
+/* ---------- 门前拍照的人：预备(下蹲) → 发力(举手机+闪光) → 收势(保持) → 回位(放下站直) ---------- */
+function photographer(){add(48+37.5,()=>{const c=(T%4.5)/4.5;const s=P(47,37.2,0),x=R(s[0]),y=R(s[1]);
+  let crouch=0,arm=0,flash=0;
+  if(c<.18)crouch=1;else if(c<.36){crouch=1;arm=1;flash=c<.24?1:0;}else if(c<.72){arm=1;crouch=0;}else{arm=c<.85?1:0;}
+  ctx.fillStyle='rgba(40,52,64,.16)';ctx.fillRect(x-1,y-1,3,1);
+  ctx.fillStyle='#2f3540';ctx.fillRect(x-1,y-2+crouch,1,2-crouch);ctx.fillRect(x,y-2+crouch,1,2-crouch);
+  ctx.fillStyle='#e8534a';ctx.fillRect(x-1,y-5+crouch,2,3);ctx.fillStyle='#e7b98f';ctx.fillRect(x-1,y-7+crouch,2,2);ctx.fillStyle='#2b2420';ctx.fillRect(x-1,y-7+crouch,2,1);
+  if(arm){ctx.fillStyle='#e7b98f';ctx.fillRect(x+1,y-6+crouch,1,2);ctx.fillStyle='#222';ctx.fillRect(x+2,y-7+crouch,1,2);}
+  if(flash){ctx.fillStyle='#ffffff';ctx.fillRect(x+1,y-9+crouch,3,3);ctx.fillRect(x,y-8+crouch,5,1);ctx.fillRect(x+2,y-10+crouch,1,5);}});}
+
+/* ---------- 圆鼓 LED 幕墙（每帧刷新） ---------- */
+function led(){const blue=(T%20)>12,base=blue?'#1f3f9c':'#b5171c',hi=blue?'#6f9bff':'#ff6a50';
+  cylCols(DX,DY,0,DR+.02,(x,u,yb)=>{if(u<-.98||u>.98)return;let k=1-.3*(u+1)/2;const a=Math.asin(u)*4+T*1.6;
+    for(let z=31;z<47;z++){let col=base;const w=((a+z*.35)%2+2)%2;
+      if(w<.5)col=hi;if(z>35&&z<42&&((a*1.3+z*.9)%3+3)%3<.7)col='#fff3d6';
+      if(z===31||z===46)col=blue?'#0f2560':'#6b0d10';
+      ctx.fillStyle=sh(col,k);ctx.fillRect(x,yb-z,1,1);}});}
+
+/* ---------- 组装每帧 ---------- */
+function frame(dt){T+=dt;ph=(ph+dt)%CYC;stepCars(dt);stepPeds(dt);
+  ctx=g;g.drawImage(bgc,0,0);led();items=[];
+  // 静态但需深度排序的物件
+  for(const x of [4,16,28,40])tree(x,34.5,0,1);for(const y of [-14,-2,10,22])tree(60.5,y,0,1);
+  for(const x of [-12,2,16,30,44,90])tree(x,57.5,0,1.1);for(const y of [-12,2,16,64])tree(83.5,y,0,1);
+  for(const [x,y] of [[8,8],[18,20],[12,22],[6,16]])tree(x,y,BH+.6,.7,1.6);
+  for(let x=S0X;x<RB0-3;x+=8)rail(x,45.7,Math.min(8,RB0-x),'x');for(let x=RB1+1;x<S1X;x+=8)rail(x,45.7,Math.min(8,S1X-x),'x');
+  for(let x=S0X;x<RB0;x+=8)rail(x,56.2,Math.min(8,RB0-x),'x');for(let x=RB1;x<S1X;x+=8)rail(x,56.2,Math.min(8,S1X-x),'x');
+  for(let y=S0Y;y<28;y+=8)rail(72,y,Math.min(8,28-y),'y');for(let y=RA1+8;y<S1Y;y+=8)rail(72,y,Math.min(8,S1Y-y),'y');
+  for(let x=S0X;x<BW;x+=8)rail(x,36.1,Math.min(8,BW-x),'x');for(let y=S0Y;y<28;y+=8)rail(RB0,y,Math.min(8,28-y),'y');
+  lamp(-8,46.3,1);lamp(30,46.3,1);lamp(71.5,-10,-1);lamp(71.5,12,-1);lamp(92,46.3,1);lamp(71.5,66,-1);
+  light(60.6,34.6,'A');light(83.2,57.2,'B');light(60.6,57.4,'B');light(83.2,34.6,'A');
+  bridge();photographer();
+  for(const l of lanes)for(const c of l.cars)drawCar(l,c);
+  for(const p of peds)drawPed(p);
+  items.sort((a,b)=>a.k-b.k);for(const it of items){if(it.cl){ctx.save();clipSlab();it.fn();ctx.restore();}else it.fn();}
+  // 输出到屏幕：整数倍放大，保持像素颗粒
+  const sc=Math.max(1,Math.floor(Math.min(main.width/W,main.height/H)));
+  mg.imageSmoothingEnabled=false;mg.fillStyle=C.bg;mg.fillRect(0,0,main.width,main.height);
+  mg.drawImage(off,0,0,W,H,(main.width-W*sc)>>1,(main.height-H*sc)>>1,W*sc,H*sc);}
+function resize(){const d=Math.min(2,window.devicePixelRatio||1);main.width=R(innerWidth*d);main.height=R(innerHeight*d);}
+addEventListener('resize',resize);resize();drawStatic();
+let last=performance.now();
+(function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;frame(dt);requestAnimationFrame(loop);})(last);
+</script>
+</body>
+</html>
