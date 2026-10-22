@@ -84,8 +84,8 @@ function order(L){const n=L.length;
   for(let i=0;i<n;i++)visit(i);return out;}
 let items=[];
 const add=(x0,y0,z0,x1,y1,z1,fn,clip)=>items.push({x0,y0,z0,x1,y1,z1,fn,clip});
-/* ===== 场地（米）：Wilkie Rd→Middle Rd 沿 x 双向 4 车道；Selegie Rd 沿 y 单行 4 车道（最右为巴士道）；Short St 沿 y 双车道 ===== */
-const X0=-14,X1=168,Y0=-14,Y1=74,RA0=50.5,RA1=64.5,RB0=80,RB1=96.5,SS0=121,SS1=128;
+/* ===== 场地（米）：Wilkie Rd→Middle Rd 沿 x 双向 4 车道；Selegie Rd 沿 y 单行 4 车道（最右为巴士道）；Short St 沿 y 窄马路（夹在车塔与 David Elias Building 之间）===== */
+const X0=-14,X1=158,Y0=-14,Y1=74,RA0=50.5,RA1=64.5,RB0=80,RB1=96.5,SS0=114,SS1=120;
 const C={slab:'#dedbd3',plaza:'#e6e3dc',fore:'#d6d2c9',road:'#a8acaf',grass:'#a8c572',curb:'#cfccc5',white:'#f6f6f2',yel:'#e2bc3a',
   tile:'#cfd0cb',roof:'#c6c8c4',curt:'#4e5a63',glass:'#a9c1cc',leaf:'#5f9a47',leaf2:'#79b257',trunk:'#7b5b3e',navy:'#1f2a5c'};
 const SLAB=[P(X0,Y0),P(X1,Y0),P(X1,Y1),P(X0,Y1)];
@@ -106,25 +106,25 @@ function farch(f,u0,u1,z0,zs,c){const r=(u1-u0)/2,uc=u0+r,p=[fpt(f,u0,z0)];
   for(let a=180;a>=0;a-=22.5)p.push(fpt(f,uc+r*Math.cos(a/57.3),zs+r*Math.sin(a/57.3)));p.push(fpt(f,u1,z0));poly(p,sh(c,f.k));}
 function drawGround(){
   box(X0,Y0,-3,X1-X0,Y1-Y0,3,C.slab,.9,.76);
-  tq(70,-14,80,50,0,C.plaza);tq(-14,42,80,48,0,C.plaza);tq(97,Y0,X1,46,0,C.fore);tq(99.5,30,120.5,46,0,C.plaza);
+  tq(70,-14,80,50,0,C.plaza);tq(-14,42,80,48,0,C.plaza);tq(97,Y0,X1,46,0,C.fore);tq(99.5,30,113.5,46,0,C.plaza);
   for(let x=71;x<80;x+=2)for(let y=-13;y<48;y+=2)dot(x,y,0,'#dad6ce');
   tq(X0,RA0,X1,RA1,0,C.road);tq(RB0,Y0,RB1,Y1,0,C.road);tq(SS0,Y0,SS1,RA0,0,C.road);
   tq(X0,RA0-.5,RB0,RA0,0,C.curb);tq(RB1,RA0-.5,SS0,RA0,0,C.curb);tq(SS1,RA0-.5,X1,RA0,0,C.curb);tq(X0,RA1,RB0,RA1+.5,0,C.curb);tq(RB1,RA1,X1,RA1+.5,0,C.curb);
   tq(RB0-.5,Y0,RB0,RA0,0,C.curb);tq(RB1,Y0,RB1+.5,RA0,0,C.curb);tq(RB0-.5,RA1,RB0,Y1,0,C.curb);tq(RB1,RA1,RB1+.5,Y1,0,C.curb);
   tq(SS0-.5,Y0,SS0,RA0-.5,0,C.curb);tq(SS1,Y0,SS1+.5,RA0-.5,0,C.curb);
-  tq(X0,48,70,RA0-.5,0,C.grass);tq(161.8,10,X1,46,0,C.grass);
+  tq(X0,48,70,RA0-.5,0,C.grass);tq(152,10,X1,46,0,C.grass);
   tq(X0,69.5,RB0-.5,Y1,0,C.grass);tq(RB1+.5,69.5,X1,Y1,0,C.grass);
   tq(X0,57,74,58,0,C.grass);tq(104.6,57,X1,58,0,C.grass);
   for(const y of [53.8,61.2]){dashX(y,X0,73.5,3,3,.3,C.white);dashX(y,105,X1,3,3,.3,C.white);}
   for(const y of [51.1,63.9]){tq(X0,y-.15,73.6,y+.15,0,C.yel);tq(105,y-.15,X1,y+.15,0,C.yel);}
   for(const x of [84,88]){dashY(x,Y0,44.6,3,3,.3,C.white);dashY(x,69.6,Y1,3,3,.3,C.white);}
   for(const x of [80.6,92.4,95.9]){tq(x-.15,Y0,x+.15,44.6,0,C.yel);tq(x-.15,69.6,x+.15,Y1,0,C.yel);}
-  dashY(124.5,Y0,44,3,3,.3,C.white);for(const x of [121.6,127.4])tq(x-.15,Y0,x+.15,46,0,C.yel);
-  for(let x=121.4;x<127.8;x+=1.2)tq(x,46.9,x+.6,50,0,C.white);
+  dashY(117,Y0,44,3,3,.3,C.white);for(const x of [114.6,119.4])tq(x-.15,Y0,x+.15,46,0,C.yel);
+  for(let x=114.3;x<119.8;x+=1.2)tq(x,46.9,x+.6,50,0,C.white);
   tq(73.4,RA0,73.9,57,0,C.white);tq(105,58,105.5,RA1,0,C.white);tq(RB0,44.7,RB1,45.2,0,C.white);
   for(const y of [46.1,49.6,65.2,68.8])dashX(y,RB0,RB1,.8,.6,.35,C.white);
   for(const x of [74.8,78.4,100.6,104.2])dashY(x,RA0,RA1,.8,.6,.35,C.white);
-  box(99.8,40.5,0,.9,.9,.8,'#e2b52a');for(let z=.1;z<.8;z+=.3)fy(41.4,99.8,100.7,z,z+.15,lit('y','#26282a'));   // 照片中的黄黑警示桩
+  box(120.5,47.2,0,.9,.9,.8,'#e2b52a');for(let z=.1;z<.8;z+=.3)fy(48.1,120.5,121.4,z,z+.15,lit('y','#26282a'));   // 照片中的黄黑警示桩
 }
 /* 建筑落影：先在单独图层画不透明剪影，再统一以低透明度合成，叠加处不发黑 */
 const SDX=.45,SDY=.12;
@@ -134,10 +134,10 @@ function shCyl(cx,cy,r,h){ctx.fillStyle='#000';for(let t=0;t<=1.001;t+=.04)ell(c
 function drawShadows(){const b=ctx;ctx=shC.getContext('2d');
   shBox(0,6,5,36,50);shBox(5,0,35,42,26);shBox(5,6,35,30,50);shBox(40,10,7,32,58);shBox(47,30,5,12,58);
   shBox(47,0,23,10,24);shBox(47,0,13,10,46);shBox(47,10,23,32,32);shBox(47,10,21,14,48);shCyl(63,35,10,34);
-  shBox(100,18,12,12,54);shBox(133,18,28,28,14.3);
+  shBox(100,18,12,12,54);shBox(122,18,28,28,14.3);
   ctx=b;ctx.save();clipSlab(ctx);ctx.globalAlpha=.13;ctx.drawImage(shC,0,0);ctx.restore();}
 /* ===== Wilkie Edge：西端玻璃楼梯塔、双层通高店面裙楼、深色住宅体量（弧形屋架+两处空中露台）、Γ 形高瓷砖片墙、
-   Selegie 侧阶梯式磨砂玻璃幕墙与退台绿化、转角玻璃圆鼓（雨篷、LED 屏、KAPLAN 招牌） ===== */
+   Selegie 侧阶梯式磨砂玻璃幕墙与退台绿化、转角玻璃圆鼓（底部招牌带、LED 屏、KAPLAN 招牌） ===== */
 const fk=(ax,pl,a0,a1,z0,z1,c,k)=>ax==='y'?fy(pl,a0,a1,z0,z1,lit('y',c,k)):fx(pl,a0,a1,z0,z1,lit('x',c,k));
 const fvl=(ax,pl,a,z0,z1,c)=>ax==='y'?vl(a,pl,z0,z1,lit('y',c)):vl(pl,a,z0,z1,lit('x',c));
 function shop2(ax,pl,a0,a1,h,signs,ivy){face(ax,pl,a0,a1,0,h,'#5f666b');let i=0;
@@ -216,66 +216,57 @@ function drawWE(){
   face('y',42,43,55.6,5.4,7.9,'#21409a');const kp=P(43.8,42,7.4);txt('KAPLAN',R(kp[0]),R(kp[1]),1,'#f3f6ff');
   drawDrum();}
 /* 圆鼓：圆心 (63,35) 半径 10 m 高 34 m；θ 为世界方位角，θ=45° 正对镜头 */
-const DCX=63,DCY=35,DR=10,DH=34,CANR=12.2,SCR0=38,SCR1=128,SZ0=14.4,SZ1=24.8;
+const DCX=63,DCY=35,DR=10,DH=34,SCR0=38,SCR1=128,SZ0=14.4,SZ1=24.8;
 function drumCols(r,cb){const s=P(DCX,DCY,0),A=r*2.828,B=r*1.414;
   for(let x=R(s[0]-A);x<R(s[0]+A);x++){const u=(x+.5-s[0])/A;if(u<=-1||u>=1)continue;const ph=Math.acos(u);cb(x,u,ph*57.2958-45,s[1]+B*Math.sin(ph));}}
 const dShade=th=>{const t=th/57.2958;return .62+.36*Math.max(0,(-.3*Math.cos(t)+Math.sin(t))/1.044);};
 function zs(x,yb,z0,z1,c){const a=R(yb-z1*KZ);ctx.fillStyle=c;ctx.fillRect(x,a,1,Math.max(1,R(yb-z0*KZ)-a));}
 let ledX0=0,ledW=0,signX0=0,signX1=0,canX0=1e9,canX1=-1e9;
-drumCols(DR,(x,u,th)=>{if(th<=SCR1&&th>=SCR0){if(!ledW)ledX0=x;ledW=x-ledX0+1;}if(th<=124&&th>=44){if(!signX0)signX0=x;signX1=x;}});
-drumCols(CANR,x=>{if(x<canX0)canX0=x;if(x>canX1)canX1=x;});
+drumCols(DR,(x,u,th)=>{if(th<=SCR1&&th>=SCR0){if(!ledW)ledX0=x;ledW=x-ledX0+1;}if(th<=124&&th>=44){if(!signX0)signX0=x;signX1=x;}if(x<canX0)canX0=x;if(x>canX1)canX1=x;});
 function drawDrum(){
-  const sx0=signX0+FL((signX1-signX0+1-tw('KAPLAN'))/2),cx0=FL((canX0+canX1+1-tw('WILKIE EDGE'))/2),s=P(DCX,DCY,0);
+  const sx0=signX0+FL((signX1-signX0+1-tw('KAPLAN'))/2),cx0=FL((canX0+canX1+1-tw('WILKIE EDGE'))/2);
   drumCols(DR,(x,u,th,yb)=>{const k=dShade(th);
-    zs(x,yb,0,6.2,sh('#34434d',k*1.05));if(x%3===0)zs(x,yb,.4,1.3,sh('#dcbf86',k));
-    zs(x,yb,6.2,27,sh(C.glass,k*1.08));if(th>58&&th<70)zs(x,yb,6.2,27,sh('#d3e2e8',k*1.08));
-    for(let z=6.2;z<27;z+=3.8)zs(x,yb,z,z+.3,sh('#e4ecef',k*1.08));if(x%4===0)zs(x,yb,6.2,27,sh('#c3d4dc',k*1.08));
+    // 底部：深色玻璃门厅 + 浅色立柱，上方贴圆鼓的白色招牌带 WILKIE（绿）EDGE（橙）
+    zs(x,yb,0,6.3,sh('#34434d',k*1.05));if(x%3===0)zs(x,yb,.4,1.3,sh('#dcbf86',k));
+    if(Math.abs(th-14)<4||Math.abs(th-80)<4||Math.abs(th-116)<3.5)zs(x,yb,0,6.3,sh('#c3c9cc',k));
+    zs(x,yb,6.3,8.9,sh('#f0f1ee',Math.min(1,k*1.08)));
+    const c=x-cx0;for(let r=0;r<5;r++)if(glyphAt('WILKIE EDGE',c,r)){ctx.fillStyle=FL(c/4)>=7?'#ef9a2a':'#3c9d46';ctx.fillRect(x,R(yb-8.55*KZ)+r,1,1);}
+    zs(x,yb,8.9,27,sh(C.glass,k*1.08));if(th>58&&th<70)zs(x,yb,8.9,27,sh('#d3e2e8',k*1.08));
+    for(let z=8.9;z<27;z+=3.8)zs(x,yb,z,z+.3,sh('#e4ecef',k*1.08));if(x%4===0)zs(x,yb,8.9,27,sh('#c3d4dc',k*1.08));
     if(th>=SCR0-2.5&&th<=SCR1+2.5)zs(x,yb,SZ0-.45,SZ1+.45,sh('#202429',k));
     zs(x,yb,27,DH,sh(C.tile,k));zs(x,yb,DH-.45,DH,sh('#ecede9',k));
     if(x>=signX0&&x<=signX1){zs(x,yb,28.2,32.6,sh(C.navy,.8+.2*k));const sc=x-sx0;
       for(let r=0;r<5;r++)if(glyphAt('KAPLAN',sc,r)){ctx.fillStyle='#f4f6fb';ctx.fillRect(x,R(yb-31.8*KZ)+r,1,1);}}});
-  ctx.fillStyle='#d9dbd7';ell(DCX,DCY,DR,DH);ctx.fillStyle='#c4c7c3';ell(DCX,DCY,DR-1.3,DH);
-  for(const a of [24,66]){const r=a/57.3;box(DCX+11.4*Math.cos(r)-.35,DCY+11.4*Math.sin(r)-.35,0,.7,.7,6.2,'#6a7277');}
-  // 白色弧形雨篷：顶面 + 前沿招牌带 WILKIE（绿）EDGE（橙）
-  drumCols(CANR,(x,u,th,yb)=>{const u10=(x+.5-s[0])/(DR*2.828),top=Math.abs(u10)<1?s[1]+DR*1.414*Math.sqrt(1-u10*u10):s[1]-CANR*1.414*Math.sqrt(1-u*u);
-    const a=R(top-8.4*KZ),b=R(yb-8.4*KZ);ctx.fillStyle='#e4e5e1';if(b>a)ctx.fillRect(x,a,1,b-a);
-    zs(x,yb,6.2,8.4,sh('#f3f4f1',Math.min(1,dShade(th)*1.1)));zs(x,yb,6.2,6.45,'#9fa4a6');
-    const c=x-cx0;for(let r=0;r<5;r++)if(glyphAt('WILKIE EDGE',c,r)){ctx.fillStyle=FL(c/4)>=7?'#ef9a2a':'#3c9d46';ctx.fillRect(x,R(yb-8*KZ)+r,1,1);}});}
-/* ===== David Elias Building（1928）：以下坐标为原位，绘制时整体东移 10 m（离屏图平移 20,10 px）；3 层，转角切角；切角上叠两层阳台，顶部山花刻大卫之星圆徽与 1928；
-   首层半圆拱廊（柱头黑色鹰饰），深挑檐托架，橙色木百叶窗，凹槽壁柱 ===== */
-const DEP=[[123,18],[151,18],[151,40],[145,46],[123,46]],DEW='#a7abad',DTR='#c3c6c5',DDP='#474e52',SHU='#c8772f',SHD='#93531d';
-const STAR=['0010100','0111110','1101011','0111110','0010100'];
+  ctx.fillStyle='#d9dbd7';ell(DCX,DCY,DR,DH);ctx.fillStyle='#c4c7c3';ell(DCX,DCY,DR-1.3,DH);}
+/* ===== David Elias Building（1928）：3 层，西南转角切角，正门与山花正对 Selegie / Middle Rd 十字路口；
+   南立面（Middle Rd）为半圆拱廊 + 橙色木百叶，西立面沿 Short St，东侧为平直侧墙；深挑檐托架，低坡四坡顶 ===== */
+const DEW='#a7abad',DTR='#c3c6c5',DDP='#474e52',SHU='#c8772f',SHD='#93531d';
+const deIn=d=>[[122+d,18+d],[150-d,18+d],[150-d,46-d],[128+.414*d,46-d],[122+d,40-.414*d]];
+const DEP=deIn(0);
 function deWin(f,u,zb,open){fq(f,u-.15,u+1.05,zb-.15,zb+2.75,DTR);
   if(open){fq(f,u,u+.9,zb,zb+2.6,'#3a4246');fq(f,u-.55,u-.1,zb+.1,zb+2.5,SHU);fq(f,u+1,u+1.45,zb+.1,zb+2.5,SHU);}
   else{fq(f,u,u+.9,zb,zb+2.6,SHU);for(let z=zb+.4;z<zb+2.5;z+=.55)fq(f,u,u+.9,z,z+.2,SHD);fv(f,u+.45,zb,zb+2.6,'#7a4116');}
   fq(f,u-.1,u+1,zb-.95,zb-.15,DTR);for(let b=u+.1;b<u+1;b+=.3)fv(f,b,zb-.85,zb-.25,'#8c9192');}
-function deFace(f,n){const bw=f.L/n;
-  for(let i=0;i<n;i++){const u0=i*bw+.55,u1=(i+1)*bw-.55;farch(f,u0,u1,0,3.1,DDP);fq(f,u0+.3,u1-.3,.15,2.5,'#7c8a90');
-    fq(f,i*bw-.1,i*bw+.1,4.5,5.1,'#1f2225');}
+function deFace(f,n,side){const bw=f.L/n;
+  for(let i=0;i<n;i++){const u0=i*bw+.55,u1=(i+1)*bw-.55;
+    if(side){fq(f,u0,u1,.15,4.2,'#7f878b');for(let z=.5;z<4.1;z+=.45)fq(f,u0,u1,z,z+.15,'#6a7276');}
+    else{farch(f,u0,u1,0,3.1,DDP);fq(f,u0+.3,u1-.3,.15,2.5,'#7c8a90');fq(f,i*bw-.1,i*bw+.1,4.5,5.1,'#1f2225');}}
   fq(f,0,f.L,5.2,5.7,DTR);fq(f,0,f.L,9.4,9.7,DTR);
   for(let i=0;i<=n;i++){const u=Math.min(Math.max(i*bw,.35),f.L-.35);fq(f,u-.35,u+.35,5.7,12.9,DTR,.97);for(let z=6.2;z<12.8;z+=.7)fq(f,u-.35,u+.35,z,z+.12,'#959a9b');}
   for(let i=0;i<n;i++){const c=i*bw+bw/2;for(const zb of [6.6,10.2])for(const d of [-1.15,.25])deWin(f,c+d,zb,hsh(i*7+zb*3,d*9+f.L)<.22);}
   fq(f,0,f.L,12.9,13.6,DEW,.72);for(let u=.9;u<f.L;u+=1.8)fv(f,u,12.9,13.6,'#d0d3d2');}
-function drawDE(){const FY=FC(123,46,145,46),FCH=FC(145,46,151,40),FX=FC(151,40,151,18);
-  prism(DEP,0,13.6,DEW);deFace(FY,6);deFace(FX,6);
-  // 切角：大拱门 + 两层阳台与落地百叶门
-  farch(FCH,1.3,7.2,0,2.2,DDP);fq(FCH,2.3,6.2,.15,3.6,'#8b989d');for(const u of [3.3,4.25,5.2])fv(FCH,u,.15,3.6,'#5a6266');
-  fq(FCH,0,FCH.L,5.2,5.7,DTR);fq(FCH,0,FCH.L,9.4,9.7,DTR);fq(FCH,0,.7,5.7,12.9,DTR);fq(FCH,FCH.L-.7,FCH.L,5.7,12.9,DTR);
-  const BF=FC(145.9,46.9,151.9,40.9);
-  for(const zb of [6,9.9]){fq(FCH,2.6,5.9,zb,zb+2.8,'#3a4246');fq(FCH,2.6,3.3,zb,zb+2.8,SHU);fq(FCH,5.2,5.9,zb,zb+2.8,SHU);{const q=fpt(FCH,4.24,zb+3.1);ctx.fillStyle='#fff0b8';ctx.fillRect(R(q[0]),R(q[1]),1,1);}
-    poly([P(145.5,46.5,zb),P(151.5,40.5,zb),P(152.3,41.3,zb),P(146.3,47.3,zb)],DTR);
-    fq(BF,.6,7.9,zb-.35,zb,DTR,.9);fq(BF,.6,7.9,zb,zb+1.1,'#b9bcbb');for(let u=.9;u<7.8;u+=.45)fv(BF,u,zb+.1,zb+.9,'#80868a');fq(BF,.6,7.9,zb+.95,zb+1.2,'#e3e5e3');}
-  fq(FCH,0,FCH.L,12.9,13.6,DEW,.72);
-  // 深挑檐 + 低坡屋顶
-  prism([[121.6,16.6],[152.4,16.6],[152.4,40.58],[145.58,47.4],[121.6,47.4]],13.6,14.3,'#c4c7c6');
-  prism([[124,19],[150,19],[150,39.6],[144.6,45],[124,45]],14.3,14.9,'#9a9fa1');prism([[127,22],[147,22],[147,38.4],[143.4,42],[127,42]],14.9,15.5,'#a2a7a9');prism([[130,25],[144,25],[144,37.2],[142.2,39],[130,39]],15.5,16.1,'#aaafb1');prism([[133,28],[141,28],[141,36],[133,36]],16.1,16.6,'#b2b6b8');
-  // 山花：弧形肩部 + 圆徽大卫之星 + 1928
-  const pp=[[.9,14.3],[.9,16.6],[1.6,17],[2,17.9],[2.6,18.9],[3.4,19.6],[4.24,19.9],[5.1,19.6],[5.9,18.9],[6.5,17.9],[6.9,17],[7.6,16.6],[7.6,14.3]];
-  poly(pp.map(([u,z])=>fpt(FCH,u,z)),sh(DTR,FCH.k*1.04));poly([fpt(FCH,.9,16.6),fpt(FCH,7.6,16.6),fpt(FCH,7.6,16.85),fpt(FCH,.9,16.85)],sh('#e6e8e6',FCH.k));
-  let p=fpt(FCH,4.24,18.3);const cx=R(p[0]),cy=R(p[1]);ctx.fillStyle=sh('#7d8384',FCH.k);
-  for(let a=0;a<360;a+=20)ctx.fillRect(cx+R(3.4*Math.cos(a/57.3)),cy+R(3*Math.sin(a/57.3)),1,1);
-  for(let r=0;r<5;r++)for(let c=0;c<7;c++)if(STAR[r][c]==='1')ctx.fillRect(cx-3+c,cy-2+r,1,1);
-  p=fpt(FCH,4.24,16.5);txt('1928',R(p[0])-7,R(p[1]),0,sh('#6f7576',FCH.k));}
+/* 切角上的薄构件（阳台、山花）：沿切角方向 u0–u1，向路口外挑 o0–o1 米 */
+const CHA=[122,40],CD=[.7071,.7071],CN=[-.7071,.7071];
+const chq=(u0,u1,o0,o1)=>[[u0,o0],[u1,o0],[u1,o1],[u0,o1]].map(([u,o])=>[CHA[0]+CD[0]*u+CN[0]*o,CHA[1]+CD[1]*u+CN[1]*o]);
+function drawDE(){const FY=FC(128,46,150,46),FX=FC(150,46,150,18);
+  prism(DEP,0,13.6,DEW);deFace(FY,5);deFace(FX,7,true);
+  // 切角正门：两层阳台与山花朝向路口（与本视角视线平行，只露出侧影）
+  for(const zb of [6,9.9]){prism(chq(1.2,7.3,0,1.1),zb-.35,zb,DTR);prism(chq(1.2,7.3,.9,1.1),zb,zb+1.1,'#b9bcbb');}
+  prism([[120.6,16.6],[151.4,16.6],[151.4,47.4],[127.42,47.4],[120.6,40.58]],13.6,14.3,'#c4c7c6');
+  prism(deIn(1),14.3,14.9,'#9a9fa1');prism(deIn(4),14.9,15.5,'#a2a7a9');prism(deIn(7),15.5,16.1,'#aaafb1');prism(deIn(10),16.1,16.6,'#b2b6b8');
+  prism(chq(.9,7.6,-.2,.5),14.3,19.4,DTR);prism(chq(3.4,5.1,-.2,.5),19.4,19.9,DTR);
+  // 南立面靠近切角的转角柱与灯
+  fq(FY,0,.9,0,13.6,DTR,.95);dot(129.2,46,4.8,'#fff0b8');}
 /* ===== Ten Square（1 Short St）：15 层车塔展厅。首层矩形玻璃展厅 + 白色 TEN 横带与百叶；塔身白色铝板、四角切角，
    正面和侧面各一条通高玻璃：正面是展示车位（每层一辆），侧面是升降井；中下部环绕广告屏 ===== */
 const LFZ=L=>7.4+(L-1)*3.05,NL=14,TOPZ=LFZ(NL+1),LXC=110.2,LY0=21.85,HY0=34.5,BYC=28.2,BX0=103.8,SX0=106.6,SY0=25.9,BB0=14.2,BB1=27.8;
@@ -284,7 +275,7 @@ const pick=()=>CARC[FL(rnd()*CARC.length)];
 const occ=[null];for(let L=1;L<=NL;L++)occ.push(rnd()<.8?pick():null);occ[5]=null;occ[11]=null;
 const OCT=d=>[[100+d,20],[102,18+d],[110,18+d],[112-d,20],[112-d,28],[110,30-d],[102,30-d],[100+d,28]];
 const TF=FC(102,30,110,30),TCH=FC(110,30,112,28),TS=FC(112,28,112,20),GF=FC(100,30,112,30),GS=FC(112,30,112,18);
-const PARK=[[122.4,-9,'#d8dadc'],[122.4,-2.6,'#2a2d31'],[122.4,3.8,'#f1f1ec'],[126.6,9,'#2f58a8'],[126.6,28,'#f1f1ec']];
+const PARK=[[118.5,-10,'#d8dadc'],[118.5,-3.6,'#2a2d31'],[118.5,2.8,'#f1f1ec'],[115.5,8,'#2f58a8']];
 function carY(xc,y0,z,col){box(xc-.85,y0+.35,z,1.7,3.6,.3,'#24272a');box(xc-.9,y0,z+.3,1.8,4.3,.7,col);box(xc-.78,y0+1.15,z+1,1.56,2.1,.45,col);
   fx(xc+.78,y0+1.3,y0+3.1,z+1.05,z+1.38,lit('x','#4b5d69'));fy(y0+3.25,xc-.7,xc+.7,z+1.05,z+1.38,lit('y','#4b5d69'));}
 function carX(x0,yc,z,col){box(x0+.35,yc-.85,z,3.6,1.7,.3,'#24272a');box(x0,yc-.9,z+.3,4.3,1.8,.7,col);box(x0+1.15,yc-.78,z+1,2.1,1.56,.45,col);
@@ -447,7 +438,7 @@ function buildItems(){
   sigItem(79.4,49.9,'A','S');sigItem(96.9,49.9,'B','W');sigItem(79.4,65,'B','W');sigItem(96.9,65,'A','S');
   for(const y of [38.6,40.6])add(77.9,y-.2,0,78.9,y+.2,1,()=>{const s=P(78.4,y,0),X=R(s[0]),Y=R(s[1]);ctx.fillStyle='#2b2e31';ctx.fillRect(X-3,Y-2,2,2);ctx.fillRect(X+1,Y-2,2,2);ctx.fillStyle=y<40?'#d9b23a':'#c8352f';ctx.fillRect(X-2,Y-3,4,1);ctx.fillRect(X,Y-4,1,1);});
   add(78.6,35.4,0,79,35.8,.9,()=>{box(78.6,35.4,0,.4,.4,.75,'#c8352f');dot(78.8,35.6,.95,'#e9e2d8');});
-  add(131.6,16.6,0,162.4,47.4,19.9,()=>ctx.drawImage(deC,20,10));add(100,18,0,112,30,TOPZ+3.4,drawTower);
+  add(120.6,16.6,0,151.4,47.4,19.9,()=>ctx.drawImage(deC,0,0));add(100,18,0,112,30,TOPZ+3.4,drawTower);
   add(99.6,30.6,0,103.8,32.4,.9,()=>box(99.6,30.6,0,4.2,1.8,.9,C.leaf,.9,.66,1.12));add(99.8,42.4,0,106.2,44,.9,()=>box(99.8,42.4,0,6.4,1.6,.9,C.leaf,.9,.66,1.12));
   for(const [x,y,col] of PARK)add(x-.9,y,0,x+.9,y+4.3,1.5,()=>carY(x,y,0,col),true);
   if(carOut(lift.car)){const c=lift.car;add(LXC-.9,c.y0,0,LXC+.9,c.y0+4.3,1.5,()=>carY(LXC,c.y0,0,lift.col));}
